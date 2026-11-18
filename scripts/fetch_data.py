@@ -9,7 +9,7 @@ BASE = "https://intervals.icu/api/v1"
 AUTH = "Basic " + base64.b64encode(f"API_KEY:{KEY}".encode()).decode()
 
 def get(url, headers):
-    req = urllib.request.Request(url, headers=headers)
+        req = urllib.request.Request(url, headers={**headers, "User-Agent": "Mozilla/5.0 (runlab)", "Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=90) as r:
         return json.load(r)
 
