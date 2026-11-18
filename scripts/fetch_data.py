@@ -1,7 +1,7 @@
 """Busca atividades e bem-estar no Intervals.icu e grava data/data.json.
 Opcional: se houver credenciais do Strava, completa atividades que o Intervals
 recebe do Strava sem detalhes (limitação da API do Strava)."""
-import os, json, base64, urllib.request, urllib.parse, datetime as dt
+import os, json, base64, urllib.request, urllib.parse, urllib.error, datetime as dt
 
 KEY = os.environ["INTERVALS_API_KEY"].strip()
 AID = os.environ["INTERVALS_ATHLETE_ID"].strip()
@@ -9,9 +9,17 @@ BASE = "https://intervals.icu/api/v1"
 AUTH = "Basic " + base64.b64encode(f"API_KEY:{KEY}".encode()).decode()
 
 def get(url, headers):
-        req = urllib.request.Request(url, headers={**headers, "User-Agent": "Mozilla/5.0 (runlab)", "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=90) as r:
-        return json.load(r)
+    h = dict(headers)
+    h["User-Agent"] = "Mozilla/5.0 (runlab)"
+    h["Accept"] = "application/json"
+    req = urllib.request.Request(url, headers=h)
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        corpo = e.read().decode("utf-8", "ignore")[:300]
+        print(f"ERRO HTTP {e.code} em {url.split('?')[0]} -> {corpo}")
+        raise
 
 def icu(path, **q):
     qs = ("?" + urllib.parse.urlencode(q)) if q else ""
