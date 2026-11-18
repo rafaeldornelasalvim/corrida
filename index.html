@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diário de corrida</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#eef2f4;--card:#fff;--ink:#14222b;--mut:#5d6f7b;--line:#d5dde2;--a:#0e7c86;--b:#e4572e;--c:#6a8caf}
+@media(prefers-color-scheme:dark){:root{--bg:#101a20;--card:#17242c;--ink:#e8eff2;--mut:#93a5b1;--line:#27383f;--a:#3cc4cf;--b:#ff8a5c;--c:#8fb0d1}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 Barlow,system-ui,sans-serif}
+.w{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+h1{font:700 40px/1 'Barlow Condensed',sans-serif;margin:0;letter-spacing:.5px}
+.sub{color:var(--mut);font-size:13px;margin-top:4px}
+.ctl{display:flex;gap:6px;flex-wrap:wrap}
+button{font:500 14px Barlow,sans-serif;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer}
+button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.k{background:var(--card);padding:14px 16px}
+.k b{display:block;font:700 34px/1.05 'Barlow Condensed',sans-serif}
+.k b small{font-size:16px;color:var(--mut);margin-left:3px}
+.k span{color:var(--mut);font-size:13px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.g{grid-template-columns:1fr}}
+.p{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.p.f{grid-column:1/-1}
+h2{font:700 20px 'Barlow Condensed',sans-serif;margin:0 0 2px}
+.d{color:var(--mut);font-size:13px;margin:0 0 10px}
+.c{position:relative;height:260px}
+.sc{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;white-space:nowrap}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:500;font-size:13px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.rec{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.rec div{border-left:3px solid var(--a);padding-left:10px}
+.rec b{font:700 24px 'Barlow Condensed',sans-serif;display:block}
+.rec span{color:var(--mut);font-size:13px}
+.msg{padding:14px 16px;border:1px solid var(--b);border-radius:8px;margin-bottom:16px;background:var(--card);font-size:14px}
+</style>
+</head>
+<body>
+<div class="w">
+<header>
+  <div><h1 id="t">Diário de corrida</h1><div class="sub" id="up">Carregando…</div></div>
+  <div class="ctl" id="ctl">
+    <button data-s="run" aria-pressed="true">Corridas</button>
+    <button data-s="all" aria-pressed="false">Todos os esportes</button>
+    <span style="width:8px"></span>
+    <button data-r="28" aria-pressed="false">4 sem.</button>
+    <button data-r="90" aria-pressed="true">3 meses</button>
+    <button data-r="365" aria-pressed="false">1 ano</button>
+    <button data-r="0" aria-pressed="false">Tudo</button>
+  </div>
+</header>
+<div id="msg"></div>
+<div class="kpis" id="kpis"></div>
+<div class="g">
+  <div class="p f"><h2>Volume semanal</h2><p class="d">Quilômetros por semana (semana começa na segunda).</p><div class="c"><canvas id="c1"></canvas></div></div>
+  <div class="p"><h2>Forma física</h2><p class="d">Fitness (CTL), fadiga (ATL) e frescor (TSB = CTL − ATL).</p><div class="c"><canvas id="c2"></canvas></div></div>
+  <div class="p"><h2>Ritmo por treino</h2><p class="d">Min/km de cada atividade. Quanto mais alto no gráfico, mais rápido.</p><div class="c"><canvas id="c3"></canvas></div></div>
+  <div class="p"><h2>Volume mensal</h2><p class="d">Quilômetros por mês.</p><div class="c"><canvas id="c4"></canvas></div></div>
+  <div class="p"><h2>Frequência cardíaca média</h2><p class="d">Média por treino, com FC de repouso quando disponível.</p><div class="c"><canvas id="c5"></canvas></div></div>
+  <div class="p f"><h2>Recordes no período</h2><p class="d">&nbsp;</p><div class="rec" id="rec"></div></div>
+  <div class="p f"><h2>Últimas atividades</h2><p class="d">As 25 mais recentes do filtro atual.</p><div class="sc"><table id="tb"></table></div></div>
+</div>
+</div>
+<script>
+const $=s=>document.querySelector(s), css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const st={s:'run',r:90}; let D,charts={};
+const isRun=a=>/run/i.test(a.type);
+const fmtT=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=Math.round(s%60);return h?`${h}h${String(m).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}`};
+const fmtP=(t,d)=>{if(!d)return'–';const s=t/d,m=Math.floor(s/60),x=Math.round(s%60);return x==60?`${m+1}:00`:`${m}:${String(x).padStart(2,'0')}`};
+const fmtD=d=>d.split('-').reverse().join('/');
+const wk=d=>{const x=new Date(d+'T00:00');x.setDate(x.getDate()-(x.getDay()+6)%7);return x.toISOString().slice(0,10)};
+const sum=(a,f)=>a.reduce((s,x)=>s+(f(x)||0),0);
+function filt(){
+  let a=D.activities.filter(x=>st.s==='all'||isRun(x));
+  if(st.r){const c=new Date();c.setDate(c.getDate()-st.r);const k=c.toISOString().slice(0,10);a=a.filter(x=>x.date>=k)}
+  return a;
+}
+function mk(id,cfg){charts[id]?.destroy();
+  Chart.defaults.color=css('--mut');Chart.defaults.borderColor=css('--line');Chart.defaults.font.family='Barlow,sans-serif';
+  cfg.options={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},...cfg.options};
+  charts[id]=new Chart($('#'+id),cfg)}
+function groupSum(a,key){const m={};a.forEach(x=>{const k=key(x.date);m[k]=(m[k]||0)+x.dist});return m}
+function render(){
+  const a=filt(), runs=a.filter(isRun);
+  const dist=sum(a,x=>x.dist), time=sum(a,x=>x.time), elev=sum(a,x=>x.elev);
+  const hrA=a.filter(x=>x.hr), hr=hrA.length?sum(hrA,x=>x.hr*x.time)/sum(hrA,x=>x.time):0;
+  const pd=sum(runs,x=>x.dist), pt=sum(runs,x=>x.time);
+  const K=[[dist.toFixed(1),'km','Distância'],[a.length,'','Atividades'],[fmtT(time),'','Tempo em movimento'],[fmtP(pt,pd),'/km','Ritmo médio (corrida)'],[Math.round(elev),'m','Ganho de elevação'],[hr?Math.round(hr):'–','bpm','FC média']];
+  $('#kpis').innerHTML=K.map(k=>`<div class="k"><b>${k[0]}<small>${k[1]}</small></b><span>${k[2]}</span></div>`).join('');
+  // semanal
+  const w=groupSum(a,wk), wl=Object.keys(w).sort();
+  const full=[];if(wl.length){let c=new Date(wl[0]+'T00:00');const e=new Date(wl[wl.length-1]+'T00:00');while(c<=e){full.push(c.toISOString().slice(0,10));c.setDate(c.getDate()+7)}}
+  mk('c1',{type:'bar',data:{labels:full.map(fmtD),datasets:[{label:'km',data:full.map(k=>+(w[k]||0).toFixed(1)),backgroundColor:css('--a'),borderRadius:3}]},options:{plugins:{legend:{display:false}}}});
+  // PMC
+  const lim=st.r?new Date(Date.now()-st.r*864e5).toISOString().slice(0,10):'0';
+  const W=D.wellness.filter(x=>x.date>=lim&&x.ctl!=null);
+  mk('c2',{type:'line',data:{labels:W.map(x=>fmtD(x.date)),datasets:[
+    {label:'Fitness (CTL)',data:W.map(x=>x.ctl),borderColor:css('--a'),pointRadius:0,tension:.3},
+    {label:'Fadiga (ATL)',data:W.map(x=>x.atl),borderColor:css('--b'),pointRadius:0,tension:.3},
+    {label:'Frescor (TSB)',data:W.map(x=>x.atl==null?null:+(x.ctl-x.atl).toFixed(1)),borderColor:css('--c'),borderDash:[4,3],pointRadius:0,tension:.3}]},options:{scales:{x:{ticks:{maxTicksLimit:6}}}}});
+  // ritmo
+  const P=runs.filter(x=>x.dist>=1);
+  mk('c3',{type:'line',data:{labels:P.map(x=>fmtD(x.date)),datasets:[{label:'min/km',data:P.map(x=>+(x.time/x.dist/60).toFixed(2)),borderColor:css('--b'),backgroundColor:css('--b'),pointRadius:3,showLine:false}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const x=P[c.dataIndex];return `${fmtP(x.time,x.dist)}/km · ${x.dist.toFixed(1)} km`}}}},scales:{y:{reverse:true,ticks:{callback:v=>fmtP(v*60,1)}},x:{ticks:{maxTicksLimit:6}}}}});
+  // mensal
+  const m=groupSum(a,d=>d.slice(0,7)), ml=Object.keys(m).sort();
+  mk('c4',{type:'bar',data:{labels:ml.map(k=>k.split('-').reverse().join('/')),datasets:[{label:'km',data:ml.map(k=>+m[k].toFixed(1)),backgroundColor:css('--c'),borderRadius:3}]},options:{plugins:{legend:{display:false}}}});
+  // FC
+  const H=a.filter(x=>x.hr), R=W.filter(x=>x.rhr);
+  mk('c5',{type:'line',data:{datasets:[
+    {label:'FC média do treino',data:H.map(x=>({x:x.date,y:Math.round(x.hr)})),borderColor:css('--b'),backgroundColor:css('--b'),pointRadius:3,showLine:false},
+    {label:'FC de repouso',data:R.map(x=>({x:x.date,y:x.rhr})),borderColor:css('--a'),pointRadius:0,tension:.3}]},
+    options:{parsing:false,scales:{x:{type:'category',labels:[...new Set([...H.map(x=>x.date),...R.map(x=>x.date)])].sort(),ticks:{maxTicksLimit:6,callback:function(v){return fmtD(this.getLabelForValue(v))}}}}}});
+  // recordes
+  const rec=[], best=(arr,f,min)=>arr.filter(min).sort(f)[0];
+  const lg=best(runs,(x,y)=>y.dist-x.dist,()=>1), fs=best(runs,(x,y)=>x.time/x.dist-y.time/y.dist,x=>x.dist>=5), fs10=best(runs,(x,y)=>x.time/x.dist-y.time/y.dist,x=>x.dist>=10), el=best(runs,(x,y)=>y.elev-x.elev,()=>1), lt=best(runs,(x,y)=>y.time-x.time,()=>1);
+  [[lg,'Corrida mais longa',x=>x.dist.toFixed(1)+' km'],[fs,'Ritmo mais rápido (≥ 5 km)',x=>fmtP(x.time,x.dist)+'/km'],[fs10,'Ritmo mais rápido (≥ 10 km)',x=>fmtP(x.time,x.dist)+'/km'],[el,'Maior elevação',x=>x.elev+' m'],[lt,'Maior duração',x=>fmtT(x.time)]].forEach(([x,l,f])=>{if(x)rec.push(`<div><b>${f(x)}</b><span>${l} · ${fmtD(x.date)}</span></div>`)});
+  $('#rec').innerHTML=rec.join('')||'<span class="d">Sem corridas neste período.</span>';
+  // tabela
+  const rows=[...a].reverse().slice(0,25).map(x=>`<tr><td>${fmtD(x.date)}</td><td>${esc(x.name)}</td><td>${esc(x.type)}</td><td class="n">${x.dist.toFixed(2)}</td><td class="n">${fmtT(x.time)}</td><td class="n">${isRun(x)?fmtP(x.time,x.dist):'–'}</td><td class="n">${x.hr?Math.round(x.hr):'–'}</td><td class="n">${x.elev}</td><td class="n">${x.load?Math.round(x.load):'–'}</td></tr>`).join('');
+  $('#tb').innerHTML='<tr><th>Data</th><th>Nome</th><th>Tipo</th><th class="n">km</th><th class="n">Tempo</th><th class="n">/km</th><th class="n">FC</th><th class="n">Elev. (m)</th><th class="n">Carga</th></tr>'+rows;
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function load(){
+  fetch('data/data.json?'+Date.now()).then(r=>r.json()).then(d=>{
+    D=d;
+    if(d.athlete)$('#t').textContent='Diário de '+d.athlete.split(' ')[0];
+    $('#up').textContent=d.updated?'Atualizado em '+new Date(d.updated).toLocaleString('pt-BR'):'Aguardando a primeira atualização automática';
+    $('#msg').innerHTML=d.stubs?`<div class="msg">${d.stubs} atividade(s) vieram do Strava sem detalhes e não aparecem aqui. O Strava não permite que o Intervals.icu repasse esses dados. Veja no guia como resolver (conectar o Strava direto neste painel ou sincronizar o relógio com o Intervals.icu).</div>`:'';
+    if(!d.activities.length){$('#kpis').innerHTML='<div class="k"><b>Sem dados ainda</b><span>Rode o workflow "Atualizar dados" na aba Actions do GitHub.</span></div>';return}
+    render();
+  }).catch(()=>{$('#up').textContent='Não foi possível carregar data/data.json'});
+}
+$('#ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const k=b.dataset.s?'s':'r';st[k]=b.dataset.s||+b.dataset.r;
+  document.querySelectorAll(`#ctl button[data-${k=='s'?'s':'r'}]`).forEach(x=>x.setAttribute('aria-pressed',x===b));
+  if(D&&D.activities.length)render()});
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>D&&D.activities.length&&render());
+load(); setInterval(load,10*60*1000);
+</script>
+</body>
+</html>
